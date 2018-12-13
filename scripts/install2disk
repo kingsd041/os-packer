@@ -100,6 +100,42 @@ EOF
         exit 0
         ;;
 
+    "pingan-ecs")
+        cat >cloud-config.yml<<EOF
+#cloud-config
+write_files:
+  - path: /etc/rc.local
+    permissions: "0755"
+    owner: root
+    content: |
+      #!/bin/bash
+      METADATA_SERVER="100.68.11.8"
+      CONF_FILE="/etc/ssh/sshd_config"
+      while true; do
+        ping -c 2 ${METADATA_SERVER}
+        if [[ $? == 0 ]]; then
+          wget -O /tmp/password http://${METADATA_SERVER}/latest/meta-data/password
+          break
+        else:
+          sleep 2
+        fi
+      done
+
+      if [[ -s /tmp/password  ]];then
+        sudo echo root:`cat /tmp/password`|chpasswd
+        sudo cp /etc/shadow /usr/share/ros/shadow.bak
+        sudo rm /tmp/password
+      else
+        sudo cp /usr/share/ros/shadow.bak /etc/shadow
+      fi
+      sudo sed -i 's/^PermitRootLogin.*$/PermitRootLogin yes/g' $CONF_FILE
+      sudo sed -i 's/^AllowGroups.*$//g' $CONF_FILE
+EOF
+        echo "building pingan-ecs"
+        sudo ros install -d /dev/sda -c $(pwd)/cloud-config.yml --no-reboot --debug --append "console=tty1 console=ttyS0,115200n8 printk.devkmsg=on rancher.autologin=ttyS0"
+        exit 0
+        ;;
+
 esac
 
 case ${PACKER_BUILDER_TYPE} in
