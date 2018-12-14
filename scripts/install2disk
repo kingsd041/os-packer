@@ -130,6 +130,9 @@ write_files:
       fi
       sudo sed -i 's/^PermitRootLogin.*$/PermitRootLogin yes/g' $CONF_FILE
       sudo sed -i 's/^AllowGroups.*$//g' $CONF_FILE
+rancher:
+  services_include:
+    pingan-amc: true
 EOF
         echo "building pingan-ecs"
         sudo ros install -d /dev/sda -c $(pwd)/cloud-config.yml --no-reboot --debug --append "console=tty1 console=ttyS0,115200n8 printk.devkmsg=on rancher.autologin=ttyS0"
