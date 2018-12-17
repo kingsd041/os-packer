@@ -112,9 +112,9 @@ write_files:
       METADATA_SERVER="100.68.11.8"
       CONF_FILE="/etc/ssh/sshd_config"
       while true; do
-        ping -c 2 ${METADATA_SERVER}
-        if [[ $? == 0 ]]; then
-          wget -O /tmp/password http://${METADATA_SERVER}/latest/meta-data/password
+        ping -c 2 \$METADATA_SERVER
+        if [[ \$? == 0 ]]; then
+          wget -O /tmp/password http://\$METADATA_SERVER/latest/meta-data/password
           break
         else:
           sleep 2
@@ -122,17 +122,22 @@ write_files:
       done
 
       if [[ -s /tmp/password  ]];then
-        sudo echo root:`cat /tmp/password`|chpasswd
-        sudo cp /etc/shadow /usr/share/ros/shadow.bak
-        sudo rm /tmp/password
+        echo root:\`cat /tmp/password\`|chpasswd
+        cp /etc/shadow /usr/share/ros/shadow.bak
+        rm /tmp/password
       else
-        sudo cp /usr/share/ros/shadow.bak /etc/shadow
+        cp /usr/share/ros/shadow.bak /etc/shadow
       fi
-      sudo sed -i 's/^PermitRootLogin.*$/PermitRootLogin yes/g' $CONF_FILE
-      sudo sed -i 's/^AllowGroups.*$//g' $CONF_FILE
-rancher:
-  services_include:
-    pingan-amc: true
+      sed -i 's/^PermitRootLogin.*$/PermitRootLogin yes/g' \$CONF_FILE
+      sed -i 's/^AllowGroups.*$//g' \$CONF_FILE
+
+      pingan_amc_status=\`ros s list | grep pingan-amc | awk '{print \$1}'\`
+      if [[  \$pingan_amc_status != "enabled" ]]; then
+        ros s enable pingan-amc
+        ros s up pingan-amc
+      else
+        echo "Pingan-amc service has started!"
+      fi
 EOF
         echo "building pingan-ecs"
         sudo ros install -d /dev/sda -c $(pwd)/cloud-config.yml --no-reboot --debug --append "console=tty1 console=ttyS0,115200n8 printk.devkmsg=on rancher.autologin=ttyS0"
